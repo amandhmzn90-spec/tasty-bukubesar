@@ -481,8 +481,6 @@ const api = (path, opts={}) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
 // ============ UTILS ============
 function fmt(n) {
   if (n === null || n === undefined || isNaN(n)) return '—';
-  const abs = Math.abs(Math.round(n));
-  if (abs >= 1000000) return 'Rp ' + (abs/1000000).toFixed(1) + 'jt';
   return 'Rp ' + Math.round(n).toLocaleString('id-ID');
 }
 function fmtFull(n) {
