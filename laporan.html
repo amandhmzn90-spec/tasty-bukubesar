@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Laporan — Bakery</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0c0c;--surface:#161616;--surface2:#1e1e1e;--surface3:#252525;
+  --border:#2a2a2a;--border2:#363636;--text:#f0ede6;--muted:#777;
+  --accent:#f5c842;--accent2:#e8a020;
+  --mandiri:#a78bfa;--bca:#60a5fa;--cash:#f472b6;
+  --saved:#4ade80;--red:#f87171;--pending:#fb923c;
+  --mono:'DM Mono',monospace;--sans:'Sora',sans-serif;--r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+nav{position:sticky;top:0;z-index:200;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;height:52px;gap:3px;}
+.logo{display:flex;align-items:center;gap:8px;margin-right:auto;}
+.logo-icon{width:26px;height:26px;background:var(--mandiri);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.logo-text{font-size:13px;font-weight:600;letter-spacing:-0.3px;}
+.nl{font-family:var(--sans);font-size:11px;font-weight:500;padding:6px 9px;border-radius:7px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap;}
+.nl.active{background:var(--surface2);color:var(--text);}
+.nl.ext{border:1px solid var(--border2);font-size:10px;padding:5px 8px;}
+.nl.ext:hover{border-color:var(--accent);color:var(--accent);}
+
+.wrap{padding:14px;max-width:900px;margin:0 auto;}
+
+.tabs{display:flex;gap:0;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:20px;}
+.tab{flex:1;font-family:var(--sans);font-size:12px;font-weight:600;padding:10px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;text-align:center;}
+.tab.active{background:var(--accent);color:#0c0c0c;}
+
+.frow{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px;}
+.frow::-webkit-scrollbar{display:none;}
+.fbtn{font-family:var(--sans);font-size:11px;font-weight:500;padding:6px 12px;border-radius:18px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all 0.15s;}
+.fbtn.active{background:var(--accent);border-color:var(--accent);color:#0c0c0c;}
+
+/* Summary row at top */
+.sum-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;}
+.sum-bar{height:2px;border-radius:2px;margin-bottom:8px;}
+.sum-label{font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:4px;}
+.sum-val{font-family:var(--mono);font-size:16px;font-weight:500;letter-spacing:-0.5px;}
+.sum-sub{font-size:10px;color:var(--muted);margin-top:3px;font-family:var(--mono);}
+
+/* Period cards */
+.period-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;}
+.period-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
+.period-label{font-size:12px;font-weight:600;}
+.period-sub{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:2px;}
+.period-saved{font-family:var(--mono);font-size:18px;font-weight:500;}
+.period-saved.pos{color:var(--saved);}
+.period-saved.neg{color:var(--red);}
+
+.period-rows{display:flex;flex-direction:column;gap:0;}
+.prow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--border);}
+.prow-label{font-size:11px;color:var(--muted);font-family:var(--mono);}
+.prow-val{font-family:var(--mono);font-size:12px;font-weight:500;}
+.prow.total-row{border-top:1px solid var(--border2);}
+.prow.total-row .prow-label{color:var(--text);font-weight:600;}
+.prow.total-row .prow-val{font-size:13px;}
+
+.pay-breakdown{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.pay-chip{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;}
+.pay-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.pay-chip-label{color:var(--muted);}
+.pay-chip-val{font-weight:500;}
+
+.spin{display:inline-block;width:13px;height:13px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:sp 0.6s linear infinite;vertical-align:middle;}
+@keyframes sp{to{transform:rotate(360deg);}}
+.empty{text-align:center;padding:48px 20px;color:var(--muted);font-size:13px;line-height:1.8;}
+
+@media(min-width:600px){
+  .sum-row{grid-template-columns:repeat(6,1fr);}
+}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><div class="logo-icon">📊</div><div class="logo-text">Laporan</div></div>
+  <a class="nl ext" href="/index.html">Transaksi</a>
+  <a class="nl ext" href="/pengeluaran.html">Pengeluaran</a>
+</nav>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab active" onclick="setTab('harian',this)">Harian</button>
+    <button class="tab" onclick="setTab('mingguan',this)">Mingguan</button>
+  </div>
+
+  <div class="frow" id="filter-row">
+    <!-- populated by JS per tab -->
+  </div>
+
+  <!-- Grand summary -->
+  <div class="sum-row" id="sum-row">
+    <div class="sum-card"><div class="sum-bar" style="background:var(--accent)"></div><div class="sum-label">Total Omset</div><div class="sum-val" id="s-omset" style="color:var(--accent)">—</div></div>
+    <div class="sum-card"><div class="sum-bar" style="background:var(--red)"></div><div class="sum-label">Total Keluar</div><div class="sum-val" id="s-exp" style="color:var(--red)">—</div></div>
+    <div class="sum-card"><div class="sum-bar" style="background:var(--saved)"></div><div class="sum-label">Total Disimpan</div><div class="sum-val" id="s-saved" style="color:var(--saved)">—</div></div>
+    <div class="sum-card"><div class="sum-bar" style="background:var(--mandiri)"></div><div class="sum-label">Mandiri</div><div class="sum-val" id="s-mandiri" style="color:var(--mandiri)">—</div><div class="sum-sub">QRIS + TF Mandiri</div></div>
+    <div class="sum-card"><div class="sum-bar" style="background:var(--bca)"></div><div class="sum-label">BCA</div><div class="sum-val" id="s-bca" style="color:var(--bca)">—</div></div>
+    <div class="sum-card"><div class="sum-bar" style="background:var(--cash)"></div><div class="sum-label">Cash</div><div class="sum-val" id="s-cash" style="color:var(--cash)">—</div></div>
+  </div>
+
+  <div id="lap-content"><div class="empty"><span class="spin"></span></div></div>
+</div>
+
+<script>
+const SB='https://rxqkbcabybbwfurzgtwj.supabase.co',KEY='sb_publishable_Z2zFPJYGejuvQgPXz9rgDg_dv2jFt43';
+const api=(p,o={})=>fetch(`${SB}/rest/v1/${p}`,{headers:{'apikey':KEY,'Authorization':`Bearer ${KEY}`,'Content-Type':'application/json','Prefer':o.prefer||'return=minimal',...(o.headers||{})}, ...o});
+
+const fmt=n=>(n===null||n===undefined||isNaN(n))?'—':'Rp '+Math.round(n).toLocaleString('id-ID');
+const pad=n=>String(n).padStart(2,'0');
+const fmtDate=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+let curTab='harian',curRange='week';
+
+function setTab(t,el){
+  curTab=t;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderFilters();
+  loadLaporan();
+}
+
+function renderFilters(){
+  const row=document.getElementById('filter-row');
+  if(curTab==='harian'){
+    row.innerHTML=`
+      <button class="fbtn active" data-r="week" onclick="setRange('week',this)">7 hari ini</button>
+      <button class="fbtn" data-r="month" onclick="setRange('month',this)">30 hari</button>
+      <button class="fbtn" data-r="month3" onclick="setRange('month3',this)">3 bulan</button>`;
+  }else{
+    row.innerHTML=`
+      <button class="fbtn active" data-r="week" onclick="setRange('week',this)">4 minggu</button>
+      <button class="fbtn" data-r="month3" onclick="setRange('month3',this)">12 minggu</button>
+      <button class="fbtn" data-r="year" onclick="setRange('year',this)">1 tahun</button>`;
+  }
+  curRange='week';
+}
+
+function setRange(r,el){
+  curRange=r;
+  document.querySelectorAll('.fbtn[data-r]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  loadLaporan();
+}
+
+function getDateRange(){
+  const now=new Date();
+  let from=new Date(now);
+  if(curRange==='week') from.setDate(now.getDate()-(curTab==='harian'?7:28));
+  else if(curRange==='month') from.setDate(now.getDate()-30);
+  else if(curRange==='month3') from.setDate(now.getDate()-90);
+  else if(curRange==='year') from.setDate(now.getDate()-365);
+  return{from:fmtDate(from),to:fmtDate(now)};
+}
+
+function weekKey(dateStr){
+  const d=new Date(dateStr+'T00:00:00'),day=d.getDay()||7;
+  const mon=new Date(d);mon.setDate(d.getDate()-day+1);
+  return fmtDate(mon);
+}
+
+async function loadLaporan(){
+  document.getElementById('lap-content').innerHTML='<div class="empty"><span class="spin"></span></div>';
+  const{from,to}=getDateRange();
+
+  const[tr,er]=await Promise.all([
+    api(`transaksi?tanggal=gte.${from}&tanggal=lte.${to}&select=tanggal,total_harga,ongkir,metode_bayar&order=tanggal.asc`,{method:'GET',prefer:''}),
+    api(`pengeluaran?tanggal=gte.${from}&tanggal=lte.${to}&select=tanggal,nominal,tipe&order=tanggal.asc`,{method:'GET',prefer:''})
+  ]);
+  const trxs=await tr.json(),exps=await er.json();
+  const tList=Array.isArray(trxs)?trxs:[],eList=Array.isArray(exps)?exps:[];
+
+  // Group by day or week
+  const gkey=d=>curTab==='harian'?d:weekKey(d);
+
+  const groups={};
+  tList.forEach(t=>{const k=gkey(t.tanggal);if(!groups[k])groups[k]={t:[],e:[]};groups[k].t.push(t);});
+  eList.forEach(e=>{
+    // For harian tab: only include harian expenses
+    // For mingguan tab: include both but separate
+    if(curTab==='harian'&&e.tipe!=='harian')return;
+    const k=gkey(e.tanggal);if(!groups[k])groups[k]={t:[],e:[]};groups[k].e.push(e);
+  });
+
+  const keys=Object.keys(groups).sort().reverse();
+
+  // Grand totals
+  let gOmset=0,gExp=0,gMandiri=0,gBca=0,gCash=0;
+  keys.forEach(k=>{
+    const{t,e}=groups[k];
+    t.forEach(tx=>{
+      const h=tx.total_harga||0,ong=tx.ongkir||0;
+      gOmset+=(h-ong);
+      if(tx.metode_bayar==='qris'||tx.metode_bayar==='tf_mandiri') gMandiri+=h;
+      else if(tx.metode_bayar==='bca') gBca+=h;
+      else if(tx.metode_bayar==='cash') gCash+=h;
+    });
+    e.forEach(ex=>{gExp+=ex.nominal||0;});
+  });
+
+  document.getElementById('s-omset').textContent=fmt(gOmset);
+  document.getElementById('s-exp').textContent=fmt(gExp);
+  const gSaved=gOmset-gExp;
+  const sv=document.getElementById('s-saved');sv.textContent=fmt(gSaved);sv.style.color=gSaved<0?'var(--red)':'var(--saved)';
+  document.getElementById('s-mandiri').textContent=fmt(gMandiri);
+  document.getElementById('s-bca').textContent=fmt(gBca);
+  document.getElementById('s-cash').textContent=fmt(gCash);
+
+  if(!keys.length){document.getElementById('lap-content').innerHTML='<div class="empty">Belum ada data di periode ini</div>';return;}
+
+  document.getElementById('lap-content').innerHTML=keys.map(k=>{
+    const{t:ts,e:es}=groups[k];
+
+    let total=0,ongkir=0,mandiri=0,bca=0,cash=0,pending=0;
+    ts.forEach(tx=>{
+      const h=tx.total_harga||0;total+=h;ongkir+=tx.ongkir||0;
+      if(tx.metode_bayar==='qris'||tx.metode_bayar==='tf_mandiri') mandiri+=h;
+      else if(tx.metode_bayar==='bca') bca+=h;
+      else if(tx.metode_bayar==='cash') cash+=h;
+      else pending+=h;
+    });
+    const omset=total-ongkir;
+
+    let expH=0,expW=0;
+    es.forEach(e=>{if(e.tipe==='mingguan')expW+=e.nominal||0;else expH+=e.nominal||0;});
+    const expTotal=expH+expW;
+    const saved=omset-expTotal;
+
+    // Label
+    let label,sublabel;
+    if(curTab==='harian'){
+      const d=new Date(k+'T00:00:00');
+      label=d.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+      sublabel=ts.length+' transaksi';
+    }else{
+      const mon=new Date(k+'T00:00:00'),sun=new Date(mon);sun.setDate(mon.getDate()+6);
+      const o={day:'numeric',month:'short'};
+      label=mon.toLocaleDateString('id-ID',o)+' – '+sun.toLocaleDateString('id-ID',o);
+      sublabel=ts.length+' transaksi · '+es.length+' pengeluaran';
+    }
+
+    return`<div class="period-card">
+      <div class="period-header">
+        <div><div class="period-label">${label}</div><div class="period-sub">${sublabel}</div></div>
+        <div class="period-saved ${saved<0?'neg':'pos'}">${fmt(saved)}</div>
+      </div>
+      <div class="period-rows">
+        <div class="prow"><span class="prow-label">Omset bersih</span><span class="prow-val" style="color:var(--saved)">${fmt(omset)}</span></div>
+        <div class="prow"><span class="prow-label">Pengeluaran harian</span><span class="prow-val" style="color:var(--red)">−${fmt(expH)}</span></div>
+        ${expW?`<div class="prow"><span class="prow-label">Pengeluaran mingguan</span><span class="prow-val" style="color:var(--red)">−${fmt(expW)}</span></div>`:''}
+        <div class="prow total-row"><span class="prow-label">Uang disimpan</span><span class="prow-val" style="color:${saved<0?'var(--red)':'var(--saved)'}">${fmt(saved)}</span></div>
+      </div>
+      <div class="pay-breakdown">
+        ${mandiri?`<div class="pay-chip"><div class="pay-dot" style="background:var(--mandiri)"></div><span class="pay-chip-label">Mandiri</span>&nbsp;<span class="pay-chip-val" style="color:var(--mandiri)">${fmt(mandiri)}</span></div>`:''}
+        ${bca?`<div class="pay-chip"><div class="pay-dot" style="background:var(--bca)"></div><span class="pay-chip-label">BCA</span>&nbsp;<span class="pay-chip-val" style="color:var(--bca)">${fmt(bca)}</span></div>`:''}
+        ${cash?`<div class="pay-chip"><div class="pay-dot" style="background:var(--cash)"></div><span class="pay-chip-label">Cash</span>&nbsp;<span class="pay-chip-val" style="color:var(--cash)">${fmt(cash)}</span></div>`:''}
+        ${pending?`<div class="pay-chip"><div class="pay-dot" style="background:var(--pending)"></div><span class="pay-chip-label">Belum cek</span>&nbsp;<span class="pay-chip-val" style="color:var(--pending)">${fmt(pending)}</span></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+renderFilters();
+loadLaporan();
+</script>
+</body>
+</html>

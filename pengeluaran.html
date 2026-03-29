@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Pengeluaran — Bakery</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#0c0c0c;--surface:#161616;--surface2:#1e1e1e;--surface3:#252525;
+  --border:#2a2a2a;--border2:#363636;--text:#f0ede6;--muted:#777;
+  --accent:#f5c842;--accent2:#e8a020;
+  --red:#f87171;--pending:#fb923c;--green:#4ade80;--purple:#c084fc;
+  --produksi:#f472b6;--ops:#60a5fa;--bca:#60a5fa;--cashc:#4ade80;
+  --mono:'DM Mono',monospace;--sans:'Sora',sans-serif;--r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+nav{position:sticky;top:0;z-index:200;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;height:52px;gap:3px;}
+.logo{display:flex;align-items:center;gap:8px;margin-right:auto;}
+.logo-icon{width:26px;height:26px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.logo-text{font-size:13px;font-weight:600;letter-spacing:-0.3px;}
+.nl{font-family:var(--sans);font-size:11px;font-weight:500;padding:6px 9px;border-radius:7px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap;}
+.nl.active{background:var(--surface2);color:var(--text);}
+.nl.ext{border:1px solid var(--border2);font-size:10px;padding:5px 8px;}
+.nl.ext:hover{border-color:var(--accent);color:var(--accent);}
+.nl.lap{background:rgba(167,139,250,0.12);color:#a78bfa;border:1px solid rgba(167,139,250,0.25);}
+.nl.lap:hover{background:rgba(167,139,250,0.2);}
+
+.page{display:none;padding:14px;max-width:900px;margin:0 auto;}
+.page.active{display:block;}
+
+.banner{border-radius:var(--r);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:9px;font-size:12px;font-family:var(--mono);}
+.banner.ok{background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);color:var(--green);}
+.banner.warn{background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.2);color:var(--pending);}
+.bdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.banner.ok .bdot{background:var(--green);}.banner.warn .bdot{background:var(--pending);}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;}
+.cbar{height:2px;border-radius:2px;margin-bottom:8px;}
+.clabel{font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:4px;}
+.cval{font-family:var(--mono);font-size:14px;font-weight:500;letter-spacing:-0.5px;}
+.csub{font-size:10px;color:var(--muted);margin-top:3px;font-family:var(--mono);}
+
+.frow{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px;}
+.frow::-webkit-scrollbar{display:none;}
+.fbtn{font-family:var(--sans);font-size:11px;font-weight:500;padding:6px 12px;border-radius:18px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all 0.15s;}
+.fbtn.active{background:var(--accent);border-color:var(--accent);color:#0c0c0c;}
+.dinput{font-family:var(--mono);font-size:11px;background:var(--surface);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:8px;outline:none;}
+.dinput:focus{border-color:var(--accent);}
+
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.st{font-size:13px;font-weight:600;}
+.badge{font-family:var(--mono);font-size:10px;background:var(--surface2);border:1px solid var(--border);padding:2px 7px;border-radius:4px;color:var(--muted);}
+
+.tlist{display:flex;flex-direction:column;gap:8px;}
+.ecard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;gap:12px;}
+.eleft{flex:1;min-width:0;}
+.ename{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.enote{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4;}
+.ebadges{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;}
+.eb{font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:4px;border:1px solid transparent;}
+.eb.produksi{background:rgba(244,114,182,0.1);border-color:rgba(244,114,182,0.25);color:var(--produksi);}
+.eb.operasional{background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.25);color:var(--ops);}
+.eb.bca{background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.2);color:var(--bca);}
+.eb.cash{background:rgba(74,222,128,0.1);border-color:rgba(74,222,128,0.2);color:var(--cashc);}
+.eb.mingguan{background:rgba(192,132,252,0.1);border-color:rgba(192,132,252,0.25);color:var(--purple);}
+.eright{text-align:right;flex-shrink:0;}
+.eamt{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--red);}
+.etime{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px;}
+
+/* manual add (collapsed by default) */
+.addform-toggle{background:transparent;border:1px solid var(--border2);color:var(--muted);font-family:var(--sans);font-size:11px;padding:6px 12px;border-radius:8px;cursor:pointer;margin-bottom:12px;transition:all 0.15s;width:100%;text-align:left;}
+.addform-toggle:hover{border-color:var(--accent);color:var(--accent);}
+.addform{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:14px;display:none;}
+.addform.open{display:block;}
+.addtitle{font-size:10px;font-weight:600;color:var(--muted);font-family:var(--mono);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:10px;}
+.finput{font-family:var(--sans);font-size:12px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:8px 12px;border-radius:8px;outline:none;width:100%;margin-bottom:8px;transition:border-color 0.15s;}
+.finput:focus{border-color:var(--accent);}
+.frow2{display:flex;gap:8px;margin-bottom:8px;}
+.fsel{font-family:var(--sans);font-size:12px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:8px 12px;border-radius:8px;outline:none;-webkit-appearance:none;appearance:none;cursor:pointer;flex:1;}
+.fsel option{background:#1e1e1e;}
+.addbtn{font-family:var(--sans);font-size:12px;font-weight:600;padding:9px 18px;border-radius:8px;border:none;background:var(--accent);color:#0c0c0c;cursor:pointer;white-space:nowrap;}
+.addbtn:hover{background:var(--accent2);}
+
+/* import */
+.impwrap{max-width:520px;margin:0 auto;}
+.dz{border:1.5px dashed var(--border2);border-radius:14px;padding:40px 24px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:12px;}
+.dz:hover,.dz.drag{border-color:var(--accent);background:rgba(245,200,66,0.03);}
+.dzicon{font-size:30px;margin-bottom:10px;}
+.dztitle{font-size:15px;font-weight:600;margin-bottom:5px;}
+.dzsub{font-size:12px;color:var(--muted);line-height:1.6;}
+.ubtn{display:inline-block;margin-top:14px;background:var(--accent);color:#0c0c0c;font-weight:600;font-family:var(--sans);font-size:13px;padding:9px 22px;border-radius:8px;border:none;cursor:pointer;}
+.ubtn:hover{background:var(--accent2);}
+
+/* tipe toggle in preview */
+.tipe-toggle{display:flex;gap:0;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;overflow:hidden;margin-bottom:14px;width:100%;}
+.tipe-btn{flex:1;font-family:var(--sans);font-size:12px;font-weight:600;padding:9px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;}
+.tipe-btn.active{background:var(--accent);color:#0c0c0c;}
+
+.pvcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:14px;}
+.pvtitle{font-size:11px;font-weight:600;color:var(--muted);font-family:var(--mono);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:10px;}
+.pvstats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.pvval{font-family:var(--mono);font-size:15px;font-weight:500;color:var(--red);}
+.pvlabel{font-size:10px;color:var(--muted);margin-top:2px;}
+.savebtn{width:100%;padding:13px;border-radius:10px;background:var(--accent);color:#0c0c0c;font-family:var(--sans);font-size:14px;font-weight:700;border:none;cursor:pointer;transition:all 0.15s;}
+.savebtn:hover{background:var(--accent2);}.savebtn:disabled{background:var(--surface2);color:var(--muted);cursor:not-allowed;}
+.cancelbtn{width:100%;padding:9px;border-radius:10px;background:transparent;color:var(--muted);font-family:var(--sans);font-size:13px;border:1px solid var(--border);cursor:pointer;margin-top:7px;transition:all 0.15s;}
+.cancelbtn:hover{border-color:var(--red);color:var(--red);}
+.dupwarn{background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.25);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--pending);line-height:1.6;}
+.logcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.logrow{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;gap:8px;}
+.logrow:last-child{border-bottom:none;}
+.logdate{font-family:var(--mono);font-weight:500;flex:1;}
+.logmeta{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.logcount{font-family:var(--mono);font-size:11px;background:var(--surface2);border:1px solid var(--border);padding:2px 7px;border-radius:4px;color:var(--muted);}
+.logubah{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:5px;background:transparent;border:1px solid var(--border2);color:var(--muted);cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.logubah:hover{border-color:var(--accent);color:var(--accent);}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:20px;max-width:360px;width:100%;}
+.modal-title{font-size:14px;font-weight:600;margin-bottom:8px;}
+.modal-sub{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:16px;}
+.modal-btns{display:flex;gap:8px;}
+.modal-btn{flex:1;padding:10px;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;border:none;cursor:pointer;}
+.modal-btn.danger{background:var(--red);color:#fff;}
+.modal-btn.cancel{background:var(--surface2);color:var(--muted);}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface3);border:1px solid var(--border2);color:var(--text);padding:9px 18px;border-radius:18px;font-size:13px;font-family:var(--sans);opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:999;white-space:nowrap;}
+.toast.show{opacity:1;}.toast.ok{border-color:rgba(74,222,128,0.4);color:var(--green);}.toast.err{border-color:rgba(248,113,113,0.4);color:var(--red);}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:sp 0.6s linear infinite;vertical-align:middle;}
+@keyframes sp{to{transform:rotate(360deg);}}
+.empty{text-align:center;padding:36px 20px;color:var(--muted);font-size:13px;line-height:1.8;}
+
+@media(min-width:600px){
+  .g2{grid-template-columns:repeat(4,1fr);}
+}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><div class="logo-icon">💸</div><div class="logo-text">Pengeluaran</div></div>
+  <button class="nl active" onclick="goPage('dashboard',this)">Dashboard</button>
+  <button class="nl" onclick="goPage('import',this)">Import</button>
+  <a class="nl ext" href="/index.html">← Transaksi</a>
+  <a class="nl lap" href="/laporan.html">📊 Laporan</a>
+</nav>
+<div class="toast" id="toast"></div>
+<div class="modal-bg" id="modal" style="display:none">
+  <div class="modal">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal()">Batal</button>
+      <button class="modal-btn danger" id="modal-confirm">Hapus & Ganti</button>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="frow">
+    <button class="fbtn active" data-f="today" onclick="setF('today',this)">Hari ini</button>
+    <button class="fbtn" data-f="week" onclick="setF('week',this)">Minggu ini</button>
+    <button class="fbtn" data-f="month" onclick="setF('month',this)">Bulan ini</button>
+    <button class="fbtn" data-f="custom" onclick="setF('custom',this)">Custom</button>
+  </div>
+  <div id="cdates" style="display:none;margin-bottom:14px">
+    <div style="display:flex;gap:6px;align-items:center">
+      <input type="date" class="dinput" id="dfrom" onchange="loadExp()">
+      <span style="color:var(--muted);font-size:12px">—</span>
+      <input type="date" class="dinput" id="dto" onchange="loadExp()">
+    </div>
+  </div>
+
+  <div class="g3" style="margin-bottom:10px">
+    <div class="card"><div class="cbar" style="background:var(--red)"></div><div class="clabel">Total</div><div class="cval" id="etotal" style="color:var(--red)">—</div><div class="csub" id="etotaln">—</div></div>
+    <div class="card"><div class="cbar" style="background:var(--produksi)"></div><div class="clabel">Produksi</div><div class="cval" id="eprod" style="color:var(--produksi);font-size:12px">—</div><div class="csub" id="eprodn">—</div></div>
+    <div class="card"><div class="cbar" style="background:var(--ops)"></div><div class="clabel">Operasional</div><div class="cval" id="eops" style="color:var(--ops);font-size:12px">—</div><div class="csub" id="eopsn">—</div></div>
+  </div>
+  <div class="g2" style="margin-bottom:16px">
+    <div class="card"><div class="cbar" style="background:var(--bca)"></div><div class="clabel">Via BCA</div><div class="cval" id="ebca" style="color:var(--bca);font-size:13px">—</div><div class="csub" id="ebcan">—</div></div>
+    <div class="card"><div class="cbar" style="background:var(--cashc)"></div><div class="clabel">Cash</div><div class="cval" id="ecash" style="color:var(--cashc);font-size:13px">—</div><div class="csub" id="ecashn">—</div></div>
+  </div>
+
+  <!-- Manual add (secondary) -->
+  <button class="addform-toggle" id="addtoggle" onclick="toggleAdd()">＋ Tambah manual (kalau kepepet)</button>
+  <div class="addform" id="addform">
+    <div class="addtitle">Tambah pengeluaran manual</div>
+    <input class="finput" id="wn" placeholder="Nama pengeluaran">
+    <div class="frow2">
+      <input class="finput" id="wnom" type="number" placeholder="Nominal" style="margin-bottom:0;flex:1">
+      <input type="date" class="dinput finput" id="wdate" style="flex:1;margin-bottom:0">
+    </div>
+    <div class="frow2" style="margin-top:8px">
+      <select class="fsel" id="wkat"><option value="produksi">Produksi</option><option value="operasional">Operasional</option></select>
+      <select class="fsel" id="wbayar"><option value="cash">Cash</option><option value="bca">BCA</option></select>
+      <select class="fsel" id="wtipe"><option value="harian">Harian</option><option value="mingguan">Mingguan</option></select>
+      <button class="addbtn" onclick="addManual()">Tambah</button>
+    </div>
+    <input class="finput" id="wcat" placeholder="Catatan (opsional)" style="margin-top:8px;margin-bottom:0">
+  </div>
+
+  <div class="sh"><div class="st">Daftar Pengeluaran</div><span class="badge" id="ebadge">—</span></div>
+  <div class="tlist" id="explist"><div class="empty"><span class="spin"></span></div></div>
+</div>
+
+<!-- IMPORT -->
+<div class="page" id="page-import">
+  <div class="impwrap">
+    <div class="banner warn" id="iexpbanner" style="display:none"><div class="bdot"></div><span id="iexptext"></span></div>
+    <div id="iexpdrop">
+      <div class="dz" id="dz-exp" onclick="document.getElementById('fi-exp').click()">
+        <div class="dzicon">💸</div>
+        <div class="dztitle">Import Pengeluaran</div>
+        <div class="dzsub">File ekspor pengeluaran Kasmini (.xlsx)</div>
+        <button class="ubtn" onclick="event.stopPropagation();document.getElementById('fi-exp').click()">Pilih File</button>
+        <input type="file" id="fi-exp" accept=".xlsx,.xls" style="display:none" onchange="handleExp(this.files[0])">
+      </div>
+      <div class="sh"><div class="st">Riwayat Import</div><span class="badge" id="logexpbadge">—</span></div>
+      <div class="logcard" id="logexplist"><div class="empty"><span class="spin"></span></div></div>
+    </div>
+
+    <div id="iexpprev" style="display:none">
+      <!-- Harian / Mingguan toggle -->
+      <div style="margin-bottom:6px;font-size:11px;color:var(--muted);font-family:var(--mono)">Tipe pengeluaran ini:</div>
+      <div class="tipe-toggle">
+        <button class="tipe-btn active" id="tipe-harian" onclick="setTipe('harian')">Harian</button>
+        <button class="tipe-btn" id="tipe-mingguan" onclick="setTipe('mingguan')">Mingguan</button>
+      </div>
+      <div id="dupexp" class="dupwarn" style="display:none"></div>
+      <div class="pvcard">
+        <div class="pvtitle" id="pvexpmode">Preview Pengeluaran — Harian</div>
+        <div class="pvstats">
+          <div><div class="pvval" id="pvetrx" style="color:var(--accent)">0</div><div class="pvlabel">Item</div></div>
+          <div><div class="pvval" id="pvetotal">—</div><div class="pvlabel">Total</div></div>
+          <div><div class="pvval" id="pvedate" style="color:var(--muted);font-size:12px">—</div><div class="pvlabel">Tanggal</div></div>
+        </div>
+      </div>
+      <button class="savebtn" id="saveexpbtn" onclick="saveExp()">💾 Simpan Pengeluaran</button>
+      <button class="cancelbtn" onclick="cancelExp()">Batal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB='https://rxqkbcabybbwfurzgtwj.supabase.co',KEY='sb_publishable_Z2zFPJYGejuvQgPXz9rgDg_dv2jFt43';
+const api=(p,o={})=>fetch(`${SB}/rest/v1/${p}`,{headers:{'apikey':KEY,'Authorization':`Bearer ${KEY}`,'Content-Type':'application/json','Prefer':o.prefer||'return=minimal',...(o.headers||{})}, ...o});
+
+const fmt=n=>(n===null||n===undefined||isNaN(n))?'—':'Rp '+Math.round(n).toLocaleString('id-ID');
+const toast=(m,t='')=>{const el=document.getElementById('toast');el.textContent=m;el.className='toast show '+t;setTimeout(()=>el.className='toast',2800);};
+const parseTime=s=>{const m=String(s||'').match(/(\d{2}:\d{2})/);return m?m[1]:'00:00';};
+const parseDate=s=>{const m=String(s||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);return m?`${m[3]}-${m[2]}-${m[1]}`:null;};
+const normKat=n=>{return String(n||'').toLowerCase().includes('produksi')?'produksi':'operasional';};
+const normBayar=n=>{const s=String(n||'').toLowerCase();return(s.includes('bca')||s.includes('transfer')||s.includes('tf'))?'bca':'cash';};
+const dr=f=>{
+  const now=new Date(),p=n=>String(n).padStart(2,'0'),fd=d=>`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+  if(f==='today'){const t=fd(now);return{from:t,to:t};}
+  if(f==='week'){const day=now.getDay()||7,mon=new Date(now);mon.setDate(now.getDate()-day+1);const sun=new Date(mon);sun.setDate(mon.getDate()+6);return{from:fd(mon),to:fd(sun)};}
+  if(f==='month'){return{from:`${now.getFullYear()}-${p(now.getMonth()+1)}-01`,to:fd(now)};}
+  if(f==='custom'){const fr=document.getElementById('dfrom').value,to=document.getElementById('dto').value;if(fr&&to)return{from:fr,to:to};}
+  return null;
+};
+
+function goPage(n,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('button.nl').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+n).classList.add('active');
+  if(el)el.classList.add('active');
+  if(n==='dashboard')loadExp();
+  if(n==='import')loadLogExp();
+}
+
+let curF='today';
+function setF(f,el){
+  curF=f;
+  document.querySelectorAll('.fbtn[data-f]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('cdates').style.display=f==='custom'?'block':'none';
+  if(f!=='custom')loadExp();
+}
+
+function toggleAdd(){
+  const f=document.getElementById('addform'),t=document.getElementById('addtoggle');
+  const open=f.classList.toggle('open');
+  t.textContent=open?'✕ Tutup form manual':'＋ Tambah manual (kalau kepepet)';
+}
+
+async function loadExp(){
+  const r=dr(curF);if(!r)return;
+  const res=await api(`pengeluaran?tanggal=gte.${r.from}&tanggal=lte.${r.to}&order=tanggal.desc,waktu.desc&select=*`,{method:'GET',prefer:''});
+  const data=await res.json(),list=Array.isArray(data)?data:[];
+  let total=0,pA=0,pN=0,oA=0,oN=0,bA=0,bN=0,cA=0,cN=0;
+  list.forEach(e=>{
+    total+=e.nominal||0;
+    if(e.kategori==='produksi'){pA+=e.nominal||0;pN++;}else{oA+=e.nominal||0;oN++;}
+    if(e.metode_bayar==='bca'){bA+=e.nominal||0;bN++;}else{cA+=e.nominal||0;cN++;}
+  });
+  document.getElementById('etotal').textContent=fmt(total);document.getElementById('etotaln').textContent=list.length+' item';
+  document.getElementById('eprod').textContent=fmt(pA);document.getElementById('eprodn').textContent=pN+' item';
+  document.getElementById('eops').textContent=fmt(oA);document.getElementById('eopsn').textContent=oN+' item';
+  document.getElementById('ebca').textContent=fmt(bA);document.getElementById('ebcan').textContent=bN+' item';
+  document.getElementById('ecash').textContent=fmt(cA);document.getElementById('ecashn').textContent=cN+' item';
+  document.getElementById('ebadge').textContent=list.length;
+  renderExp(list);
+}
+
+function renderExp(data){
+  const el=document.getElementById('explist');
+  if(!data.length){el.innerHTML='<div class="empty">📭<br>Belum ada pengeluaran di periode ini</div>';return;}
+  el.innerHTML=data.map(e=>`<div class="ecard">
+    <div class="eleft">
+      <div class="ename">${e.nama||'—'}</div>
+      ${e.catatan?`<div class="enote">${e.catatan}</div>`:''}
+      <div class="ebadges">
+        <span class="eb ${e.kategori||'operasional'}">${e.kategori||'operasional'}</span>
+        <span class="eb ${e.metode_bayar||'cash'}">${e.metode_bayar==='bca'?'BCA':'Cash'}</span>
+        ${e.tipe==='mingguan'?'<span class="eb mingguan">mingguan</span>':''}
+      </div>
+    </div>
+    <div class="eright">
+      <div class="eamt">${fmt(e.nominal)}</div>
+      <div class="etime">${e.tanggal}${e.waktu&&e.waktu!=='00:00:00'?' '+e.waktu.slice(0,5):''}</div>
+    </div>
+  </div>`).join('');
+}
+
+async function addManual(){
+  const nama=document.getElementById('wn').value.trim(),nominal=parseFloat(document.getElementById('wnom').value)||0;
+  const kat=document.getElementById('wkat').value,bayar=document.getElementById('wbayar').value;
+  const date=document.getElementById('wdate').value,catatan=document.getElementById('wcat').value.trim();
+  const tipe=document.getElementById('wtipe').value;
+  if(!nama||!nominal||!date){toast('Lengkapi nama, nominal, dan tanggal','err');return;}
+  const r=await api('pengeluaran',{method:'POST',body:JSON.stringify({nama,nominal,kategori:kat,metode_bayar:bayar,tanggal:date,waktu:'00:00:00',tipe,catatan:catatan||null})});
+  if(r.ok){toast('Ditambahkan ✓','ok');document.getElementById('wn').value='';document.getElementById('wnom').value='';document.getElementById('wcat').value='';loadExp();}
+  else toast('Gagal menyimpan','err');
+}
+
+// IMPORT
+let pExp=[],curTipe='harian',replaceDate=null;
+
+function setTipe(t){
+  curTipe=t;
+  document.getElementById('tipe-harian').className='tipe-btn'+(t==='harian'?' active':'');
+  document.getElementById('tipe-mingguan').className='tipe-btn'+(t==='mingguan'?' active':'');
+  document.getElementById('pvexpmode').textContent=`Preview Pengeluaran — ${t==='harian'?'Harian':'Mingguan'}`;
+}
+
+function handleExp(file){
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{try{
+    const wb=XLSX.read(e.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]];
+    const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+    let hr=-1;for(let i=0;i<raw.length;i++){if(raw[i]?.some(c=>String(c||'').includes('Id Pengeluaran'))){hr=i;break;}}
+    if(hr===-1){toast('Format tidak cocok','err');return;}
+    const h=raw[hr].map(c=>String(c||'').trim()),ix=k=>h.findIndex(v=>v.includes(k));
+    const iId=ix('Id Pengeluaran'),iN=ix('Nama Pengeluaran'),iNom=ix('Nominal'),iC=ix('Catatan'),iD=ix('Tanggal Pengeluaran');
+    pExp=[];
+    for(let i=hr+1;i<raw.length;i++){
+      const row=raw[i];if(!row||!row[iId]||String(row[iId]||'').trim()==='')continue;
+      const ds=String(row[iD]||''),nama=String(row[iN]||'').trim();
+      pExp.push({expense_id:String(row[iId]||''),nama,nominal:parseFloat(row[iNom])||0,catatan:String(row[iC]||'').replace(/\\n/g,' ').trim()||null,kategori:normKat(nama),metode_bayar:normBayar(nama),tanggal:parseDate(ds),waktu:parseTime(ds),tipe:'harian'});
+    }
+    if(!pExp.length){toast('Tidak ada data','err');return;}
+    curTipe='harian';replaceDate=null;
+    showExpPrev(false);
+  }catch(err){toast('Error: '+err.message,'err');}};
+  r.readAsArrayBuffer(file);
+}
+
+async function showExpPrev(isReplace){
+  replaceDate=isReplace?pExp[0]?.tanggal:null;
+  const total=pExp.reduce((s,e)=>s+e.nominal,0),date=pExp[0]?.tanggal;
+  document.getElementById('pvetrx').textContent=pExp.length;
+  document.getElementById('pvetotal').textContent=fmt(total);
+  document.getElementById('pvedate').textContent=date?new Date(date+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}):'—';
+  document.getElementById('pvexpmode').textContent=isReplace?'Ganti File — '+date:'Preview Pengeluaran — Harian';
+  if(!isReplace){setTipe('harian');}
+  const dup=document.getElementById('dupexp');
+  if(!isReplace&&date){
+    const lr=await api(`pengeluaran?tanggal=eq.${date}&tipe=eq.harian&select=id`,{method:'GET',prefer:''});
+    const ex=await lr.json();
+    if(ex&&ex.length){dup.style.display='block';dup.textContent=`⚠️ Sudah ada ${ex.length} pengeluaran harian untuk tanggal ${date}.`;}
+    else dup.style.display='none';
+  }else dup.style.display='none';
+  document.getElementById('iexpdrop').style.display='none';
+  document.getElementById('iexpprev').style.display='block';
+  document.getElementById('saveexpbtn').textContent=isReplace?'🔄 Ganti Data':'💾 Simpan Pengeluaran';
+}
+
+function cancelExp(){pExp=[];replaceDate=null;document.getElementById('fi-exp').value='';document.getElementById('iexpdrop').style.display='block';document.getElementById('iexpprev').style.display='none';}
+
+async function saveExp(){
+  const btn=document.getElementById('saveexpbtn');
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span> Menyimpan...';
+  const date=pExp[0]?.tanggal;
+  const dataToSave=pExp.map(e=>({...e,tipe:curTipe}));
+  try{
+    if(replaceDate){
+      await api(`pengeluaran?tanggal=eq.${replaceDate}&tipe=eq.${curTipe}`,{method:'DELETE'});
+    }
+    for(let i=0;i<dataToSave.length;i+=50){
+      const r=await api('pengeluaran',{method:'POST',body:JSON.stringify(dataToSave.slice(i,i+50))});
+      if(!r.ok)throw new Error('Gagal');
+    }
+    toast(replaceDate?'Data berhasil diganti ✓':`${pExp.length} pengeluaran disimpan ✓`,'ok');
+    cancelExp();loadLogExp();
+  }catch(err){toast('Error: '+err.message,'err');btn.disabled=false;btn.textContent=replaceDate?'🔄 Ganti Data':'💾 Simpan Pengeluaran';}
+}
+
+async function loadLogExp(){
+  const res=await api(`pengeluaran?order=tanggal.desc&select=tanggal,imported_at,tipe`,{method:'GET',prefer:''});
+  const data=await res.json();if(!Array.isArray(data))return;
+  const seen=new Set(),logs=[];
+  data.forEach(d=>{const k=d.tanggal+d.tipe;if(!seen.has(k)){seen.add(k);logs.push(d);}});
+  logs.sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
+  document.getElementById('logexpbadge').textContent=logs.length;
+  const list=document.getElementById('logexplist');
+  if(!logs.length){list.innerHTML='<div class="empty">Belum ada riwayat</div>';return;}
+  const today=new Date().toISOString().slice(0,10),tl=logs.find(l=>l.tanggal===today);
+  const b=document.getElementById('iexpbanner'),bt=document.getElementById('iexptext');
+  if(tl){b.style.display='flex';b.className='banner ok';bt.textContent='Pengeluaran hari ini sudah diimpor';}
+  else{b.style.display='flex';b.className='banner warn';bt.textContent='Belum ada import pengeluaran hari ini';}
+  list.innerHTML=logs.slice(0,14).map(l=>{
+    const d=new Date(l.tanggal+'T00:00:00').toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+    const tipeBadge=l.tipe==='mingguan'?`<span style="font-size:10px;color:var(--purple);font-family:var(--mono)">mingguan</span>`:'';
+    return`<div class="logrow">
+      <div><div class="logdate">${d} ${tipeBadge}</div></div>
+      <span class="logcount">${l.tipe}</span>
+      <button class="logubah" onclick="ubahFileExp('${l.tanggal}','${l.tipe}')">Ubah file</button>
+    </div>`;
+  }).join('');
+}
+
+let ubahTarget=null,ubahTipe=null;
+function ubahFileExp(tanggal,tipe){
+  ubahTarget=tanggal;ubahTipe=tipe;
+  document.getElementById('modal-title').textContent='Ubah file pengeluaran?';
+  document.getElementById('modal-sub').textContent=`Data ${tipe} tanggal ${new Date(tanggal+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'long'})} akan dihapus dan diganti file baru.`;
+  document.getElementById('modal-confirm').onclick=()=>{closeModal();triggerUbahExp();};
+  document.getElementById('modal').style.display='flex';
+}
+function closeModal(){document.getElementById('modal').style.display='none';}
+function triggerUbahExp(){
+  const fi=document.createElement('input');fi.type='file';fi.accept='.xlsx,.xls';
+  fi.onchange=e=>{
+    const file=e.target.files[0];if(!file)return;
+    const r=new FileReader();
+    r.onload=ev=>{try{
+      const wb=XLSX.read(ev.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+      let hr=-1;for(let i=0;i<raw.length;i++){if(raw[i]?.some(c=>String(c||'').includes('Id Pengeluaran'))){hr=i;break;}}
+      if(hr===-1){toast('Format tidak cocok','err');return;}
+      const h=raw[hr].map(c=>String(c||'').trim()),ix=k=>h.findIndex(v=>v.includes(k));
+      const iId=ix('Id Pengeluaran'),iN=ix('Nama Pengeluaran'),iNom=ix('Nominal'),iC=ix('Catatan'),iD=ix('Tanggal Pengeluaran');
+      pExp=[];
+      for(let i=hr+1;i<raw.length;i++){
+        const row=raw[i];if(!row||!row[iId]||String(row[iId]||'').trim()==='')continue;
+        const ds=String(row[iD]||''),nama=String(row[iN]||'').trim();
+        pExp.push({expense_id:String(row[iId]||''),nama,nominal:parseFloat(row[iNom])||0,catatan:String(row[iC]||'').replace(/\\n/g,' ').trim()||null,kategori:normKat(nama),metode_bayar:normBayar(nama),tanggal:parseDate(ds),waktu:parseTime(ds),tipe:ubahTipe});
+      }
+      if(!pExp.length){toast('Tidak ada data','err');return;}
+      curTipe=ubahTipe;
+      showExpPrev(true);
+    }catch(err){toast('Error: '+err.message,'err');}};
+    r.readAsArrayBuffer(file);
+  };
+  fi.click();
+}
+
+const dz=document.getElementById('dz-exp');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');handleExp(e.dataTransfer.files[0]);});
+
+document.getElementById('wdate').value=new Date().toISOString().slice(0,10);
+loadExp();
+</script>
+</body>
+</html>
