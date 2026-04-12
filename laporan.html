@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Laporan — Bakery</title>
-<link rel="icon" type="image/png" href="assets/gambar.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -104,8 +103,8 @@ canvas{max-height:180px;}
 <body>
 <nav>
   <div class="logo"><div class="logo-icon">📊</div><div class="logo-text">Laporan</div></div>
-  <a class="nl ext" href="/">Transaksi</a>
-  <a class="nl ext" href="/pengeluaran.html">Pengeluaran</a>
+  <a class="nl ext" href="bakery-bukukesar.html">Transaksi</a>
+  <a class="nl ext" href="bakery-pengeluaran.html">Pengeluaran</a>
   <button class="nl export-btn" onclick="openExport()">⬇ Ekspor Excel</button>
 </nav>
 
@@ -181,9 +180,9 @@ function setTab(t,el){curTab=t;document.querySelectorAll('.tab').forEach(b=>b.cl
 function renderFilters(){
   const row=document.getElementById('filter-row');
   if(curTab==='harian'){row.innerHTML=`<button class="fbtn active" data-r="week" onclick="setRange('week',this)">7 hari</button><button class="fbtn" data-r="month" onclick="setRange('month',this)">30 hari</button><button class="fbtn" data-r="month3" onclick="setRange('month3',this)">3 bulan</button><button class="fbtn" data-r="custom" onclick="setRange('custom',this)">Custom</button>`;}
-  else if(curTab==='mingguan'){row.innerHTML=`<button class="fbtn active" data-r="month" onclick="setRange('month',this)">Bulan ini</button><button class="fbtn" data-r="month3" onclick="setRange('month3',this)">12 minggu</button><button class="fbtn" data-r="year" onclick="setRange('year',this)">1 tahun</button><button class="fbtn" data-r="custom" onclick="setRange('custom',this)">Custom</button>`;}
+  else if(curTab==='mingguan'){row.innerHTML=`<button class="fbtn active" data-r="month" onclick="setRange('month',this)">Bulan ini</button><button class="fbtn" data-r="month3" onclick="setRange('month3',this)">3 bulan</button><button class="fbtn" data-r="year" onclick="setRange('year',this)">1 tahun</button><button class="fbtn" data-r="custom" onclick="setRange('custom',this)">Custom</button>`;}
   else{row.innerHTML=`<button class="fbtn active" data-r="year" onclick="setRange('year',this)">Tahun ini</button><button class="fbtn" data-r="custom" onclick="setRange('custom',this)">Custom</button>`;}
-  curRange=curTab==='bulanan'?'year':'week';
+  curRange=curTab==='bulanan'?'year':curTab==='mingguan'?'month':'week';
 }
 function setRange(r,el){curRange=r;document.querySelectorAll('.fbtn[data-r]').forEach(b=>b.classList.remove('active'));el.classList.add('active');document.getElementById('custom-dates').style.display=r==='custom'?'block':'none';if(r!=='custom')loadCurrent();}
 function getRange(){
@@ -197,6 +196,8 @@ function getRange(){
 }
 function loadCurrent(){if(curTab==='harian')loadHarian();else if(curTab==='mingguan')loadMingguan();else loadBulanan();}
 
+// Minggu berdasarkan tanggal 1 bulan itu (bukan Senin-Minggu kalender)
+// Minggu 1 = tgl 1-7, Minggu 2 = 8-14, Minggu 3 = 15-21, Minggu 4 = 22-28, Minggu 5 = 29-akhir
 const weekKey=d=>{
   const dt=new Date(d+'T00:00:00');
   const y=dt.getFullYear(),m=dt.getMonth(),day=dt.getDate();
@@ -268,7 +269,17 @@ function renderPeriodCard(k,ts,es,type){
   const expTotal=expH+expW,saved=omset-expTotal;
   let label,sub;
   if(type==='harian'){const d=new Date(k+'T00:00:00');label=d.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});sub=ts.length+' transaksi';}
-  else{const mon=new Date(k+'T00:00:00'),sun=new Date(mon);sun.setDate(mon.getDate()+6);const o={day:'numeric',month:'short'};label=mon.toLocaleDateString('id-ID',o)+' – '+sun.toLocaleDateString('id-ID',o);sub=ts.length+' transaksi · '+es.length+' pengeluaran';}
+  else{
+    const startD=new Date(k+'T00:00:00');
+    const wy=startD.getFullYear(),wm=startD.getMonth(),startDay=startD.getDate();
+    const lastDay=new Date(wy,wm+1,0).getDate();
+    const endDay=Math.min(startDay+6,lastDay);
+    const endD=new Date(wy,wm,endDay);
+    const weekNum=Math.ceil(startDay/7);
+    const wo={day:'numeric',month:'short'};
+    label='Minggu '+weekNum+' — '+startD.toLocaleDateString('id-ID',wo)+' s/d '+endD.toLocaleDateString('id-ID',wo);
+    sub=ts.length+' transaksi · '+es.length+' pengeluaran';
+  }
   return`<div class="period-card">
     <div class="period-header"><div><div class="period-label">${label}</div><div class="period-sub">${sub}</div></div><div class="period-saved ${saved<0?'neg':'pos'}">${fmt(saved)}</div></div>
     <div class="prow"><span class="prow-label">Total penjualan</span><span class="prow-val">${fmt(total)}</span></div>
@@ -426,8 +437,17 @@ async function exportMingguan(from,to){
   (Array.isArray(tList)?tList:[]).forEach(t=>{const k=weekKey(t.tanggal);if(!groups[k])groups[k]={omset:0,expH:0,expW:0,mandiri:0,bca:0,cash:0};groups[k].omset+=(t.total_harga||0)-(t.ongkir||0);if(t.metode_bayar==='qris'||t.metode_bayar==='tf_mandiri')groups[k].mandiri+=t.total_harga||0;else if(t.metode_bayar==='bca')groups[k].bca+=t.total_harga||0;else if(t.metode_bayar==='cash')groups[k].cash+=t.total_harga||0;});
   (Array.isArray(eList)?eList:[]).forEach(e=>{const k=weekKey(e.tanggal);if(!groups[k])groups[k]={omset:0,expH:0,expW:0,mandiri:0,bca:0,cash:0};if(e.tipe==='mingguan')groups[k].expW+=e.nominal||0;else groups[k].expH+=e.nominal||0;});
   const wb=XLSX.utils.book_new();
-  const rows=[['Minggu (Senin)','Omset','Pengeluaran Harian','Pengeluaran Mingguan','Total Pengeluaran','Omset Bersih','Mandiri','BCA','Cash']];
-  Object.keys(groups).sort().forEach(k=>{const g=groups[k];const exp=g.expH+g.expW;rows.push([k,g.omset,g.expH,g.expW,exp,g.omset-exp,g.mandiri,g.bca,g.cash]);});
+  const rows=[['Minggu (mulai tgl)','Omset','Pengeluaran Harian','Pengeluaran Mingguan','Total Pengeluaran','Omset Bersih','Mandiri','BCA','Cash']];
+  Object.keys(groups).sort().forEach(k=>{
+    const g=groups[k];const exp=g.expH+g.expW;
+    const sd=new Date(k+'T00:00:00'),sy=sd.getFullYear(),sm=sd.getMonth(),sday=sd.getDate();
+    const lastDay=new Date(sy,sm+1,0).getDate(),eday=Math.min(sday+6,lastDay);
+    const ed=new Date(sy,sm,eday);
+    const wn=Math.ceil(sday/7);
+    const wo={day:'numeric',month:'short'};
+    const rangeLabel='Minggu '+wn+' ('+sd.toLocaleDateString('id-ID',wo)+' s/d '+ed.toLocaleDateString('id-ID',wo)+')';
+    rows.push([rangeLabel,g.omset,g.expH,g.expW,exp,g.omset-exp,g.mandiri,g.bca,g.cash]);
+  });
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Laporan Mingguan');
   XLSX.writeFile(wb,`laporan_mingguan_${from}_${to}.xlsx`);
 }
