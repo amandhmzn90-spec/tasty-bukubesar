@@ -181,7 +181,7 @@ function setTab(t,el){curTab=t;document.querySelectorAll('.tab').forEach(b=>b.cl
 function renderFilters(){
   const row=document.getElementById('filter-row');
   if(curTab==='harian'){row.innerHTML=`<button class="fbtn active" data-r="week" onclick="setRange('week',this)">7 hari</button><button class="fbtn" data-r="month" onclick="setRange('month',this)">30 hari</button><button class="fbtn" data-r="month3" onclick="setRange('month3',this)">3 bulan</button><button class="fbtn" data-r="custom" onclick="setRange('custom',this)">Custom</button>`;}
-  else if(curTab==='mingguan'){row.innerHTML=`<button class="fbtn active" data-r="week" onclick="setRange('week',this)">4 minggu</button><button class="fbtn" data-r="month3" onclick="setRange('month3',this)">12 minggu</button><button class="fbtn" data-r="year" onclick="setRange('year',this)">1 tahun</button><button class="fbtn" data-r="custom" onclick="setRange('custom',this)">Custom</button>`;}
+  else if(curTab==='mingguan'){row.innerHTML=`<button class="fbtn active" data-r="month" onclick="setRange('month',this)">Bulan ini</button><button class="fbtn" data-r="month3" onclick="setRange('month3',this)">12 minggu</button><button class="fbtn" data-r="year" onclick="setRange('year',this)">1 tahun</button><button class="fbtn" data-r="custom" onclick="setRange('custom',this)">Custom</button>`;}
   else{row.innerHTML=`<button class="fbtn active" data-r="year" onclick="setRange('year',this)">Tahun ini</button><button class="fbtn" data-r="custom" onclick="setRange('custom',this)">Custom</button>`;}
   curRange=curTab==='bulanan'?'year':'week';
 }
