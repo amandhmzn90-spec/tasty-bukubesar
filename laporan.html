@@ -196,13 +196,24 @@ function getRange(){
 }
 function loadCurrent(){if(curTab==='harian')loadHarian();else if(curTab==='mingguan')loadMingguan();else loadBulanan();}
 
-// Minggu berdasarkan tanggal 1 bulan itu (bukan Senin-Minggu kalender)
-// Minggu 1 = tgl 1-7, Minggu 2 = 8-14, Minggu 3 = 15-21, Minggu 4 = 22-28, Minggu 5 = 29-akhir
+// Minggu 1 = tgl 1 s/d Minggu pertama bulan itu
+// Minggu 2+ = Senin-Minggu kalender, dipotong di akhir bulan
 const weekKey=d=>{
   const dt=new Date(d+'T00:00:00');
   const y=dt.getFullYear(),m=dt.getMonth(),day=dt.getDate();
-  const weekStart=Math.floor((day-1)/7)*7+1;
-  return `${y}-${pad(m+1)}-${pad(weekStart)}`;
+  // Cari Minggu pertama bulan ini (hari Minggu = 0)
+  const firstOfMonth=new Date(y,m,1);
+  const firstSunday=firstOfMonth.getDay()===0?1:8-firstOfMonth.getDay();
+  if(day<=firstSunday){
+    // Masuk minggu 1: key = tgl 1 bulan ini
+    return `${y}-${pad(m+1)}-01`;
+  }
+  // Minggu 2+: cari Senin awal minggu kalender
+  const dayOfWeek=dt.getDay()||7; // 1=Sen, 7=Min
+  const monday=new Date(dt);monday.setDate(day-dayOfWeek+1);
+  // Kalau Senin itu bulan sebelumnya, pakai tgl 1
+  if(monday.getMonth()!==m) return `${y}-${pad(m+1)}-01`;
+  return `${y}-${pad(m+1)}-${pad(monday.getDate())}`;
 };
 const monthKey=d=>d.slice(0,7);
 
@@ -273,9 +284,23 @@ function renderPeriodCard(k,ts,es,type){
     const startD=new Date(k+'T00:00:00');
     const wy=startD.getFullYear(),wm=startD.getMonth(),startDay=startD.getDate();
     const lastDay=new Date(wy,wm+1,0).getDate();
-    const endDay=Math.min(startDay+6,lastDay);
+    // Hitung end of week: kalau minggu 1 (startDay==1), end = Minggu pertama bulan itu
+    // Kalau minggu lain, end = Minggu (startDay+6) atau akhir bulan
+    let endDay;
+    if(startDay===1){
+      // Minggu pertama: dari tgl 1 sampai Minggu pertama bulan ini
+      const firstSunday=startD.getDay()===0?1:8-startD.getDay();
+      endDay=Math.min(firstSunday,lastDay);
+    }else{
+      endDay=Math.min(startDay+6,lastDay);
+    }
     const endD=new Date(wy,wm,endDay);
-    const weekNum=Math.ceil(startDay/7);
+    // Hitung nomor minggu
+    const firstOfMonth=new Date(wy,wm,1);
+    const firstSunday2=firstOfMonth.getDay()===0?1:8-firstOfMonth.getDay();
+    let weekNum;
+    if(startDay===1) weekNum=1;
+    else weekNum=1+Math.ceil((startDay-firstSunday2)/7);
     const wo={day:'numeric',month:'short'};
     label='Minggu '+weekNum+' — '+startD.toLocaleDateString('id-ID',wo)+' s/d '+endD.toLocaleDateString('id-ID',wo);
     sub=ts.length+' transaksi · '+es.length+' pengeluaran';
@@ -441,9 +466,16 @@ async function exportMingguan(from,to){
   Object.keys(groups).sort().forEach(k=>{
     const g=groups[k];const exp=g.expH+g.expW;
     const sd=new Date(k+'T00:00:00'),sy=sd.getFullYear(),sm=sd.getMonth(),sday=sd.getDate();
-    const lastDay=new Date(sy,sm+1,0).getDate(),eday=Math.min(sday+6,lastDay);
+    const lastDay=new Date(sy,sm+1,0).getDate();
+    const firstOfMonth=new Date(sy,sm,1);
+    const firstSunday=firstOfMonth.getDay()===0?1:8-firstOfMonth.getDay();
+    let eday;
+    if(sday===1){eday=Math.min(firstSunday,lastDay);}
+    else{eday=Math.min(sday+6,lastDay);}
     const ed=new Date(sy,sm,eday);
-    const wn=Math.ceil(sday/7);
+    let wn;
+    if(sday===1)wn=1;
+    else wn=1+Math.ceil((sday-firstSunday)/7);
     const wo={day:'numeric',month:'short'};
     const rangeLabel='Minggu '+wn+' ('+sd.toLocaleDateString('id-ID',wo)+' s/d '+ed.toLocaleDateString('id-ID',wo)+')';
     rows.push([rangeLabel,g.omset,g.expH,g.expW,exp,g.omset-exp,g.mandiri,g.bca,g.cash]);
